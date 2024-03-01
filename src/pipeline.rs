@@ -1,7 +1,7 @@
 use crate::ops::*;
 use crate::opbasics::*;
 
-extern crate rawloader;
+extern crate rawler;
 extern crate multicache;
 use self::multicache::MultiCache;
 extern crate serde;
@@ -10,8 +10,14 @@ use self::serde::{Serialize,Deserialize};
 
 extern crate image;
 use image::{RgbImage, DynamicImage};
+use rawler::decoders::RawDecodeParams;
+use rawler::get_decoder;
+use rawler::RawFile;
+use rawler::RawlerError;
 
 use std::fmt::Debug;
+use std::fs::File;
+use std::io::BufReader;
 use std::sync::Arc;
 use std::io::Write;
 use std::path::Path;
@@ -258,10 +264,10 @@ impl Pipeline {
   pub fn new_cache(size: usize) -> PipelineCache {
     MultiCache::new(size)
   }
-
+/* 
   pub fn new_from_file<P: AsRef<Path>>(path: P) -> Result<Pipeline, String> {
     do_timing!("total new_from_file()", {
-    if let Ok(img) = do_timing!("  rawloader", rawloader::decode_file(&path)) {
+    if let Ok(img) = do_timing!("  rawler", rawler::decode_file(&path)) {
       Self::new_from_source(ImageSource::Raw(img))
     } else if let Ok(img) = do_timing!("  image::open", image::open(&path)) {
       Self::new_from_source(ImageSource::Other(img))
@@ -270,6 +276,28 @@ impl Pipeline {
     }
     })
   }
+*/
+
+  pub fn new_from_file<P: AsRef<Path>>(path: P) -> Result<Pipeline, String> {
+    let params = RawDecodeParams::default();
+    let input = BufReader::new(File::open(&path).map_err(|e| RawlerError::with_io_error("load buffer", &path, e).to_string())?);
+    let mut rawfile = RawFile::new(path, input);
+    match get_decoder(&mut rawfile) {
+      Ok(decoder) => {
+        match decoder.raw_image(&mut rawfile, params, false) {
+          Ok(rawimage) => {
+            match rawimage.clone().data {
+              RawImageData::Integer(_) => Self::new_from_source(ImageSource::Raw(rawimage)),
+              RawImageData::Float(_) => todo!(),
+            }
+          },
+          Err(e) => Err(e.to_string()),
+        }
+      },
+      Err(e) => Err(e.to_string()),
+    }
+  }
+
 
   pub fn new_from_source(img: ImageSource) -> Result<Pipeline, String> {
     let ops = PipelineOps::new(&img);

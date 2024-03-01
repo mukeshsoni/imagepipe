@@ -145,7 +145,7 @@ fn rotate_buffer(buf: &OpBuffer, orientation: &Orientation) -> OpBuffer {
 
 #[cfg(test)]
 mod tests {
-  use rawloader::Orientation;
+  use rawler::Orientation;
   use crate::buffer::OpBuffer;
   use super::rotate_buffer;
 

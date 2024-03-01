@@ -1,3 +1,5 @@
+use rawler::imgop::{Dim2, Point, Rect};
+
 use crate::opbasics::*;
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -11,23 +13,24 @@ pub struct OpGoFloat {
   pub whitelevels: [f32;4],
 }
 
-fn from_int4(arr: [u16;4]) -> [f32;4] {
-  [arr[0] as f32, arr[1] as f32, arr[2] as f32, arr[3] as f32]
-}
-
 impl OpGoFloat {
   pub fn new(img: &ImageSource) -> OpGoFloat {
     match img {
       ImageSource::Raw(img) => {
         // Calculate the resulting width/height and top-left corner after crops
+        let default_rect = Rect::new(Point::new(0, 0), Dim2::new(img.width, img.height));
+        let crop_area = match img.crop_area {
+          Some(ref rect) => rect,
+          None => &default_rect,
+        };
         OpGoFloat{
-          crop_top:    img.crops[0],
-          crop_right:  img.crops[1],
-          crop_bottom: img.crops[2],
-          crop_left:   img.crops[3],
-          is_cfa: img.cfa.is_valid(),
-          blacklevels: from_int4(img.blacklevels),
-          whitelevels: from_int4(img.whitelevels),
+          crop_top:    crop_area.as_ltrb_offsets(img.width, img.height)[1],
+          crop_right:  crop_area.as_ltrb_offsets(img.width, img.height)[2],
+          crop_bottom: crop_area.as_ltrb_offsets(img.width, img.height)[3],
+          crop_left:   crop_area.as_ltrb_offsets(img.width, img.height)[0],
+          is_cfa: img.camera.cfa.is_valid(),
+          blacklevels: img.blacklevel.as_bayer_array(),
+          whitelevels: img.whitelevel.as_bayer_array(),
         }
       },
       ImageSource::Other(_) => {

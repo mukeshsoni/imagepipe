@@ -1,3 +1,5 @@
+use rawler::imgop::xyz::XYZ_TO_SRGB_D50;
+
 use crate::opbasics::*;
 use crate::color_conversions::*;
 
@@ -37,10 +39,15 @@ impl OpToLab {
         } else {
           normalize_wbs(img.wb_coeffs)
         };
+        println!("cam_to_xyz: {:?}", img.cam_to_xyz());
+        println!("cam_to_xyz_normalized: {:?}", img.cam_to_xyz_normalized());
+        println!("SRGB: {:?}", *SRGB_D65_43);
+        println!("xyz_to_cam: {:?}", img.xyz_to_cam);
+        println!("wb_coeffs: {:?}", coeffs);
 
         OpToLab{
-          cam_to_xyz: img.cam_to_xyz(),
-          cam_to_xyz_normalized: img.cam_to_xyz_normalized(),
+          cam_to_xyz: *SRGB_D65_43, //img.cam_to_xyz(),
+          cam_to_xyz_normalized: *SRGB_D65_43, //img.cam_to_xyz_normalized(),
           xyz_to_cam: img.xyz_to_cam,
           wb_coeffs: coeffs,
         }
@@ -103,7 +110,6 @@ impl<'a> ImageOp<'a> for OpToLab {
     Arc::new(buf.process_into_new(3, &(|outb: &mut [f32], inb: &[f32]| {
       for (pixin, pixout) in inb.chunks_exact(4).zip(outb.chunks_exact_mut(3)) {
         let (l,a,b) = camera_to_lab(mul, cmatrix, pixin);
-
         pixout[0] = l;
         pixout[1] = a;
         pixout[2] = b;
