@@ -1,5 +1,3 @@
-use rawler::imgop::xyz::XYZ_TO_SRGB_D50;
-
 use crate::opbasics::*;
 use crate::color_conversions::*;
 
@@ -39,15 +37,18 @@ impl OpToLab {
         } else {
           normalize_wbs(img.wb_coeffs)
         };
+/*        println!("Camera: {}", img.camera.model.to_string());
+        println!("camera xyz: {:?}", img.camera.xyz_to_cam);
         println!("cam_to_xyz: {:?}", img.cam_to_xyz());
         println!("cam_to_xyz_normalized: {:?}", img.cam_to_xyz_normalized());
         println!("SRGB: {:?}", *SRGB_D65_43);
         println!("xyz_to_cam: {:?}", img.xyz_to_cam);
         println!("wb_coeffs: {:?}", coeffs);
-
+        println!("Rotation: {:?}", img.orientation);
+*/
         OpToLab{
-          cam_to_xyz: *SRGB_D65_43, //img.cam_to_xyz(),
-          cam_to_xyz_normalized: *SRGB_D65_43, //img.cam_to_xyz_normalized(),
+          cam_to_xyz: img.cam_to_xyz(), //*SRGB_D65_43,
+          cam_to_xyz_normalized: img.cam_to_xyz_normalized(), //*SRGB_D65_43,
           xyz_to_cam: img.xyz_to_cam,
           wb_coeffs: coeffs,
         }

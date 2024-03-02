@@ -279,13 +279,30 @@ impl Pipeline {
 */
 
   pub fn new_from_file<P: AsRef<Path>>(path: P) -> Result<Pipeline, String> {
-    let params = RawDecodeParams::default();
     let input = BufReader::new(File::open(&path).map_err(|e| RawlerError::with_io_error("load buffer", &path, e).to_string())?);
     let mut rawfile = RawFile::new(path, input);
     match get_decoder(&mut rawfile) {
       Ok(decoder) => {
-        match decoder.raw_image(&mut rawfile, params, false) {
-          Ok(rawimage) => {
+        match decoder.raw_image(&mut rawfile, RawDecodeParams::default(), false) {
+          Ok(mut rawimage) => {
+            match decoder.raw_metadata(&mut rawfile, RawDecodeParams::default()) {
+              Ok(metadata) => {
+                match (metadata.exif.orientation.unwrap_or(0) as u16).into() {
+                  0 => {}
+                  1 => {}
+                  2 => { rawimage.orientation = Orientation::VerticalFlip}
+                  3 => { rawimage.orientation = Orientation::Rotate180}
+                  4 => { rawimage.orientation = Orientation::HorizontalFlip}
+                  5 => {}
+                  6 => { rawimage.orientation = Orientation::Rotate90}
+                  7 => { }
+                  8 => { rawimage.orientation = Orientation::Rotate270}
+                  _ => {}
+                }
+              },
+              Err(e) => return Err(e.to_string()),
+            }
+
             match rawimage.clone().data {
               RawImageData::Integer(_) => Self::new_from_source(ImageSource::Raw(rawimage)),
               RawImageData::Float(_) => todo!(),
